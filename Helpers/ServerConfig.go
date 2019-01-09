@@ -23,6 +23,31 @@ type GenericServer struct {
 func NewGenericServer(cfg Config) *GenericServer {
 	return &GenericServer{cfg:cfg}
 }
+func InitServer(address string,ca string, tlsCert string, tlsKey string)( *GenericServer, Config){
+	cfg := Config{
+		Address: address+":8443",
+		CACertFiles: []string{
+			ca,
+		},
+		CertFile:tlsCert,
+		KeyFile:  tlsKey,
+	}
+	srv := NewGenericServer(cfg)
+	return srv,cfg
+}
+
+func (s GenericServer) ListenAndServe(mux http.Handler) {
+	log.Printf("listening on %s\n", s.cfg.Address)
+
+	srv := &http.Server{
+		Addr:         s.cfg.Address,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Handler:      mux,
+	}
+	srv.TLSConfig = s.tlsConfig()
+	log.Fatalln(srv.ListenAndServeTLS(s.cfg.CertFile, s.cfg.KeyFile))
+}
 
 func (s GenericServer) tlsConfig() *tls.Config {
 	if s.cfg.CertFile == "" || s.cfg.KeyFile == "" {
@@ -62,17 +87,4 @@ func (s GenericServer) tlsConfig() *tls.Config {
 	tlsConfig.BuildNameToCertificate()
 
 	return tlsConfig
-}
-
-func (s GenericServer) ListenAndServe(mux http.Handler) {
-	log.Printf("listening on %s\n", s.cfg.Address)
-
-	srv := &http.Server{
-		Addr:         s.cfg.Address,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		Handler:      mux,
-	}
-	srv.TLSConfig = s.tlsConfig()
-	log.Fatalln(srv.ListenAndServeTLS(s.cfg.CertFile, s.cfg.KeyFile))
 }

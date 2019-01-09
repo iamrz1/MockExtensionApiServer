@@ -48,6 +48,15 @@ func (s *CertStore) InitCA(prefix string, ip string) error {
 	log.Println("Creating New CA")
 	return s.NewCA(ip)
 }
+func (s *CertStore) LoadCAForPrefix(prefix string, ip string)  error{
+	if len(prefix)>0{
+		s.prefix=strings.ToLower(strings.TrimSpace(prefix)) + "-"
+	}else{
+		return  errors.Errorf("Insert a valid Prefix of length>0")
+	}
+	err := s.LoadCA()
+	return err
+}
 func (s *CertStore) LoadCA() error {
 
 	if s.KeyCertPairExists(s.ca) {
@@ -145,4 +154,7 @@ func getCertificateConfig(certificateType CertificateType, lookUpNames cert.AltN
 	}
 	log.Println("certificate Configured.")
 	return cfg
+}
+func (s *CertStore) CACertBytes() []byte {
+	return cert.EncodeCertPEM(s.caCert)
 }
